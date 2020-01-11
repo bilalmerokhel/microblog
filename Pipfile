@@ -20,6 +20,7 @@ flask-babel = "*"
 guess-language-spirit = "*"
 black = "*"
 elasticsearch = "*"
+httpie = "*"
 
 [requires]
 python_version = "3.6"

@@ -35,7 +35,7 @@
         {{ _('Messages') }}
         {% set new_messages = current_user.new_messages() %}
         {% if new_messages %}
-        <span id="message_count" class="badge" style="visibility: {% if new_messages %}visible {% else %}hidden{% endif %};">
+        <span id="message_count" class="badge" style="visibility: {% if new_messages %}visible{% else %}hidden{% endif %};">
       {{ new_messages }}
        </span>
       {% endif %}
@@ -66,6 +66,19 @@
 
 {% block content %}
 <div class="container">
+  {% if current_user.is_authenticated %}
+  {% with tasks = current_user.get_tasks_in_progress() %}
+  {% if tasks %}
+      {% for task in tasks %}
+      <div class="alert alert-success" role="alert">
+          {{ task.description }}
+          <span id="{{ task.id }}-progress">{{ task.get_progress() }}</span>%
+      </div>
+      {% endfor %}
+  {% endif %}
+  {% endwith %}
+  {% endif %}
+<div class="container">
   {% with messages = get_flashed_messages() %}
   {% if messages %}
     {% for message in messages %}
@@ -91,6 +104,10 @@
 {{ moment.lang(g.locale) }}
 
     <script type="text/javascript">
+      function set_task_progress(task_id, progress) {
+        $('#' + task_id + '-progress').text(progress);
+    }
+
       function set_message_count(n) {
             $('#message_count').text(n);
             $('#message_count').css('visibility', n ? 'visible' : 'hidden');
@@ -99,16 +116,24 @@
         $(function() {
             var since = 0;
             setInterval(function() {
-                $.ajax('{{ url_for('main.notifications') }}?since=' + since).done(
-                    function(notifications) {
+              $.ajax('{{ url_for('main.notifications') }}?since=' + since).done(
+                  function(notifications) {
                         for (var i = 0; i < notifications.length; i++) {
-                            if (notifications[i].name == 'unread_message_count')
-                                set_message_count(notifications[i].data);
+                            switch (notifications[i].name) {
+                                case 'unread_message_count':
+                                    set_message_count(notifications[i].data);
+                                    break;
+                                case 'task_progress':
+                                    set_task_progress(
+                                        notifications[i].data.task_id,
+                                        notifications[i].data.progress);
+                                    break;
+                            }
                             since = notifications[i].timestamp;
                         }
-                    }
-                );
-            }, 3000);
+                  }
+              );
+          }, 10000);
         });
         {% endif %}
     </script>
